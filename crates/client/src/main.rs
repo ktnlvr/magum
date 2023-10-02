@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
-use camera::{move_camera, CameraBundle};
+use camera::{move_camera, CameraBundle, CameraMotor, CameraOptions};
 use hero::HeroBundle;
-use player::{move_player, PlayerSpriteMarker, animate_player_sprite};
+use player::{animate_player_sprite, move_player, PlayerMotor, PlayerSpriteMarker};
 
 mod camera;
 mod hero;
@@ -39,7 +39,11 @@ fn setup(
 
 pub fn main() {
     App::new()
+        .register_type::<CameraOptions>()
+        .register_type::<PlayerMotor>()
+        .register_type::<CameraMotor>()
         .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
+        .init_resource::<CameraOptions>()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_systems(Startup, setup)
         .add_systems(Update, (move_player, move_camera, animate_player_sprite))

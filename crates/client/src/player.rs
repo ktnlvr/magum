@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::camera::CameraOptions;
+
 #[derive(Debug, Default, Clone, Copy, Component, PartialEq, Hash, Reflect)]
 pub struct PlayerMarker;
 
@@ -55,6 +57,7 @@ pub fn animate_player_sprite(
     motor: Query<&PlayerMotor, Without<PlayerSpriteMarker>>,
     mut sprite: Query<&mut Transform, With<PlayerSpriteMarker>>,
     time: Res<Time>,
+    director: Res<CameraOptions>,
 ) {
     let motor = motor.single();
     let mut sprite_transform = sprite.single_mut();
@@ -62,5 +65,6 @@ pub fn animate_player_sprite(
     let bob_intensity =
         motor.velocity.length() / motor.max_speed + motor.velocity.y.abs() / motor.max_speed;
 
-    sprite_transform.translation.y = (time.elapsed_seconds() * 25.).sin() * bob_intensity * 1.5;
+    sprite_transform.translation.y =
+        (time.elapsed_seconds() * 25.).sin() * bob_intensity * director.character_bob_intensity;
 }
