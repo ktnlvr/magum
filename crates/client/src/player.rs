@@ -66,5 +66,5 @@ pub fn animate_player_sprite(
         motor.velocity.length() / motor.max_speed + motor.velocity.y.abs() / motor.max_speed;
 
     sprite_transform.translation.y =
-        (time.elapsed_seconds() * 25.).sin() * bob_intensity * director.character_bob_intensity;
+        (time.elapsed_seconds() * 27.5).sin() * bob_intensity * director.character_bob_intensity;
 }
