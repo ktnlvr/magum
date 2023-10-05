@@ -1,16 +1,13 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
-use camera::{move_camera, CameraBundle, CameraMotor, CameraOptions};
-use combat::{attack_input_system, PlayerMeleeAttackEvent, WeaponMotor, animate_player_attack};
 use hero::HeroBundle;
 use player::{
-    animate_player_sprite, animate_player_weapon, handle_player_movement, PlayerMotor,
-    PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker,
+    CameraBundle, CameraPlugin, PlayerAnimatorPlugin, PlayerLocomotionPlugin,
+    PlayerMeleeAttackEvent, PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker,
+    WeaponAnimator,
 };
 
-mod camera;
-mod combat;
 mod hero;
 mod player;
 
@@ -125,7 +122,7 @@ fn setup(
                         ..default()
                     },
                     PlayerWeaponMarker,
-                    WeaponMotor::default(),
+                    WeaponAnimator::default(),
                 ));
             });
         });
@@ -139,19 +136,19 @@ pub fn toggle_debug_render_context(mut ctx: ResMut<DebugRenderContext>, keys: Re
 
 pub fn main() {
     App::new()
-        .register_type::<CameraOptions>()
-        .register_type::<CameraMotor>()
-        .register_type::<PlayerMotor>()
-        .register_type::<WeaponMotor>()
-        .register_type::<RigidBody>()
         .add_event::<PlayerMeleeAttackEvent>()
+        // background
+        .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
+        // builtins
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        // game related stuff
+        .add_plugins((CameraPlugin, PlayerAnimatorPlugin, PlayerLocomotionPlugin))
+        // physics
+        .register_type::<RigidBody>()
         .insert_resource(RapierConfiguration {
             gravity: Vec2::ZERO,
             ..Default::default()
         })
-        .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
-        .init_resource::<CameraOptions>()
-        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins((
             RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(10.0),
             RapierDebugRenderPlugin {
@@ -161,17 +158,7 @@ pub fn main() {
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (toggle_debug_render_context,))
-        .add_systems(
-            Update,
-            (
-                handle_player_movement,
-                move_camera,
-                animate_player_sprite,
-                animate_player_weapon,
-                animate_player_attack,
-                attack_input_system,
-            ),
-        )
+        // cool gui stuff
         .add_plugins(DefaultInspectorConfigPlugin)
         .add_plugins(WorldInspectorPlugin::new())
         .run();

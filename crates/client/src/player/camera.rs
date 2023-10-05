@@ -1,7 +1,18 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_inspector_egui::{InspectorOptions, prelude::ReflectInspectorOptions};
+use bevy_inspector_egui::{prelude::ReflectInspectorOptions, InspectorOptions};
 
 use crate::player::PlayerMarker;
+
+pub struct CameraPlugin;
+
+impl Plugin for CameraPlugin {
+    fn build(&self, app: &mut App) {
+        app.register_type::<CameraOptions>()
+            .init_resource::<CameraOptions>()
+            .register_type::<CameraMotor>()
+            .add_systems(Update, (move_camera,));
+    }
+}
 
 #[derive(Resource, Reflect, InspectorOptions)]
 #[reflect(Resource, InspectorOptions)]
