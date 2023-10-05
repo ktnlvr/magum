@@ -1,4 +1,7 @@
-use crate::player::*;
+use crate::{
+    collision::{Collider, ColliderShape, RigidBody},
+    player::*,
+};
 use bevy::prelude::*;
 
 #[derive(Bundle)]
@@ -9,6 +12,8 @@ pub struct HeroBundle {
     pub computed_visibility: ComputedVisibility,
 
     pub visibility: Visibility,
+    pub collider: Collider,
+    pub rb: RigidBody,
 
     #[bundle()]
     pub transform: TransformBundle,
@@ -23,6 +28,11 @@ impl Default for HeroBundle {
             motor: Default::default(),
             computed_visibility: Default::default(),
             transform: Default::default(),
+            collider: Collider {
+                dynamic: true,
+                shape: ColliderShape::circle(4.),
+            },
+            rb: RigidBody::new_resting(1.),
         }
     }
 }

@@ -1,10 +1,12 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use camera::{move_camera, CameraBundle, CameraMotor, CameraOptions};
+use collision::{move_physics_bodies, Collider, ColliderShape, RigidBody};
 use hero::HeroBundle;
-use player::{animate_player_sprite, move_player, PlayerMotor, PlayerSpriteMarker};
+use player::{animate_player_sprite, handle_player_movement, PlayerMotor, PlayerSpriteMarker};
 
 mod camera;
+mod collision;
 mod hero;
 mod player;
 
@@ -64,12 +66,18 @@ fn setup(
         ..default()
     });
 
-    commands.spawn((SpriteSheetBundle {
-        texture_atlas: texture_atlas.clone(),
-        sprite: wall_sprite.clone(),
-        transform: Transform::from_xyz(16., 16., 0.),
-        ..default()
-    },));
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas.clone(),
+            sprite: wall_sprite.clone(),
+            transform: Transform::from_xyz(16., 16., 0.),
+            ..default()
+        },
+        Collider {
+            dynamic: false,
+            shape: ColliderShape::rect(Vec2::new(4., 4.)),
+        },
+    ));
 
     commands
         .spawn((HeroBundle {
@@ -91,13 +99,23 @@ fn setup(
 pub fn main() {
     App::new()
         .register_type::<CameraOptions>()
-        .register_type::<PlayerMotor>()
         .register_type::<CameraMotor>()
+        .register_type::<PlayerMotor>()
+        .register_type::<Collider>()
+        .register_type::<RigidBody>()
         .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
         .init_resource::<CameraOptions>()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_systems(Startup, setup)
-        .add_systems(Update, (move_player, move_camera, animate_player_sprite))
+        .add_systems(
+            Update,
+            (
+                handle_player_movement,
+                move_camera,
+                animate_player_sprite,
+                move_physics_bodies,
+            ),
+        )
         .add_plugins(DefaultInspectorConfigPlugin)
         .add_plugins(WorldInspectorPlugin::new())
         .run();

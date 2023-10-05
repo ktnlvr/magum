@@ -16,7 +16,7 @@ impl Default for CameraOptions {
         Self {
             follow_speed: 30.,
             character_to_cursor_center: 0.25,
-            character_bob_intensity: 1.25,
+            character_bob_intensity: 0.75,
         }
     }
 }
