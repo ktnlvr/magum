@@ -7,9 +7,9 @@ pub struct HeroBundle {
     pub name: Name,
     pub marker: PlayerMarker,
     pub motor: PlayerMotor,
-    
-    pub computed_visibility: ComputedVisibility,
-    pub visibility: Visibility,
+
+    #[bundle()]
+    pub visibility: VisibilityBundle,
 
     pub rb: RigidBody,
     pub collider: Collider,
@@ -25,10 +25,9 @@ impl Default for HeroBundle {
     fn default() -> Self {
         Self {
             name: Name::new("Hero"),
-            visibility: Visibility::Visible,
+            visibility: Default::default(),
             marker: Default::default(),
             motor: Default::default(),
-            computed_visibility: Default::default(),
             transform: Default::default(),
             rb: RigidBody::Dynamic,
             collider: Collider::ball(3.5),

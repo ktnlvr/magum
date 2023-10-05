@@ -3,7 +3,10 @@ use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlu
 use bevy_rapier2d::prelude::*;
 use camera::{move_camera, CameraBundle, CameraMotor, CameraOptions};
 use hero::HeroBundle;
-use player::{animate_player_sprite, handle_player_movement, PlayerMotor, PlayerSpriteMarker};
+use player::{
+    animate_player_sprite, animate_player_weapon, handle_player_movement, PlayerMotor,
+    PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker,
+};
 
 mod camera;
 mod hero;
@@ -32,6 +35,9 @@ fn setup(
 
     let mut wall_sprite = TextureAtlasSprite::new(1);
     wall_sprite.color = Color::rgb_u8(0x64, 0x6C, 0x5E);
+
+    let mut sword_sprite = TextureAtlasSprite::new(13);
+    sword_sprite.color = Color::rgb_u8(0x91, 0x87, 0x83);
 
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
@@ -83,13 +89,32 @@ fn setup(
         .with_children(|hero| {
             hero.spawn((
                 SpriteSheetBundle {
-                    texture_atlas,
+                    texture_atlas: texture_atlas.clone(),
                     sprite: TextureAtlasSprite::new(16),
-                    transform: Transform::from_xyz(0., 0., 0.),
                     ..default()
                 },
                 PlayerSpriteMarker,
             ));
+
+            hero.spawn((
+                TransformBundle {
+                    local: Transform::from_xyz(0., 0., 0.),
+                    ..Default::default()
+                },
+                VisibilityBundle::default(),
+                PlayerWeaponPivotMarker,
+            ))
+            .with_children(|pivot| {
+                pivot.spawn((
+                    SpriteSheetBundle {
+                        texture_atlas,
+                        sprite: sword_sprite,
+                        transform: Transform::from_xyz(4., -2., 1.),
+                        ..Default::default()
+                    },
+                    PlayerWeaponMarker,
+                ));
+            });
         });
 }
 
@@ -123,7 +148,12 @@ pub fn main() {
         .add_systems(Update, (toggle_debug_render_context,))
         .add_systems(
             Update,
-            (handle_player_movement, move_camera, animate_player_sprite),
+            (
+                handle_player_movement,
+                move_camera,
+                animate_player_sprite,
+                animate_player_weapon,
+            ),
         )
         .add_plugins(DefaultInspectorConfigPlugin)
         .add_plugins(WorldInspectorPlugin::new())
