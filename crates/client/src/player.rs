@@ -1,7 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 
-use crate::camera::CameraOptions;
+use crate::{camera::CameraOptions, combat::WeaponMotor};
 
 #[derive(Debug, Default, Clone, Copy, Component, PartialEq, Hash, Reflect)]
 pub struct PlayerMarker;
@@ -77,11 +77,14 @@ pub fn animate_player_sprite(
 }
 
 pub fn animate_player_weapon(
-    mut weapon_pivot: Query<(&GlobalTransform, &mut Transform), With<PlayerWeaponPivotMarker>>,
+    mut weapon_pivot: Query<
+        (&GlobalTransform, &mut Transform),
+        With<PlayerWeaponPivotMarker>,
+    >,
     camera: Query<(&GlobalTransform, &Camera), Without<PlayerMarker>>,
     window: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let (global_pivot, mut local_pivot,) = weapon_pivot.single_mut();
+    let (global_pivot, mut local_pivot) = weapon_pivot.single_mut();
     let (camera_global, camera) = camera.single();
     let window = window.single();
 
@@ -89,7 +92,8 @@ pub fn animate_player_weapon(
         .cursor_position()
         .and_then(|cursor| camera.viewport_to_world_2d(camera_global, cursor))
     {
-        let direction = cursor_pos - Vec2::new(global_pivot.translation().x, global_pivot.translation().y);
+        let direction =
+            cursor_pos - Vec2::new(global_pivot.translation().x, global_pivot.translation().y);
         let angle = direction.y.atan2(direction.x);
         local_pivot.rotation = Quat::from_euler(EulerRot::XYZ, 0., 0., angle);
 

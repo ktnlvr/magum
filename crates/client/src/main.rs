@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
 use camera::{move_camera, CameraBundle, CameraMotor, CameraOptions};
+use combat::{attack_input_system, PlayerMeleeAttackEvent, WeaponMotor, animate_player_attack};
 use hero::HeroBundle;
 use player::{
     animate_player_sprite, animate_player_weapon, handle_player_movement, PlayerMotor,
@@ -9,6 +10,7 @@ use player::{
 };
 
 mod camera;
+mod combat;
 mod hero;
 mod player;
 
@@ -38,6 +40,9 @@ fn setup(
 
     let mut sword_sprite = TextureAtlasSprite::new(13);
     sword_sprite.color = Color::rgb_u8(0x91, 0x87, 0x83);
+
+    let mut dummy_sprite = TextureAtlasSprite::new(17);
+    dummy_sprite.color = Color::rgb_u8(0x7D, 0x5C, 0x51);
 
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
@@ -82,6 +87,13 @@ fn setup(
         Collider::cuboid(4., 4.),
     ));
 
+    commands.spawn(SpriteSheetBundle {
+        texture_atlas: texture_atlas.clone(),
+        sprite: dummy_sprite.clone(),
+        transform: Transform::from_xyz(-8., 32., 0.),
+        ..default()
+    });
+
     commands
         .spawn((HeroBundle {
             ..Default::default()
@@ -99,7 +111,7 @@ fn setup(
             hero.spawn((
                 TransformBundle {
                     local: Transform::from_xyz(0., 0., 0.),
-                    ..Default::default()
+                    ..default()
                 },
                 VisibilityBundle::default(),
                 PlayerWeaponPivotMarker,
@@ -109,10 +121,11 @@ fn setup(
                     SpriteSheetBundle {
                         texture_atlas,
                         sprite: sword_sprite,
-                        transform: Transform::from_xyz(4., -2., 1.),
-                        ..Default::default()
+                        transform: Transform::from_xyz(0., 0., 1.),
+                        ..default()
                     },
                     PlayerWeaponMarker,
+                    WeaponMotor::default(),
                 ));
             });
         });
@@ -129,7 +142,9 @@ pub fn main() {
         .register_type::<CameraOptions>()
         .register_type::<CameraMotor>()
         .register_type::<PlayerMotor>()
+        .register_type::<WeaponMotor>()
         .register_type::<RigidBody>()
+        .add_event::<PlayerMeleeAttackEvent>()
         .insert_resource(RapierConfiguration {
             gravity: Vec2::ZERO,
             ..Default::default()
@@ -153,6 +168,8 @@ pub fn main() {
                 move_camera,
                 animate_player_sprite,
                 animate_player_weapon,
+                animate_player_attack,
+                attack_input_system,
             ),
         )
         .add_plugins(DefaultInspectorConfigPlugin)
