@@ -1,12 +1,11 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
+use bevy_rapier2d::prelude::*;
 use camera::{move_camera, CameraBundle, CameraMotor, CameraOptions};
-use collision::{move_physics_bodies, Collider, ColliderShape, RigidBody};
 use hero::HeroBundle;
 use player::{animate_player_sprite, handle_player_movement, PlayerMotor, PlayerSpriteMarker};
 
 mod camera;
-mod collision;
 mod hero;
 mod player;
 
@@ -73,10 +72,8 @@ fn setup(
             transform: Transform::from_xyz(16., 16., 0.),
             ..default()
         },
-        Collider {
-            dynamic: false,
-            shape: ColliderShape::rect(Vec2::new(4., 4.)),
-        },
+        RigidBody::Fixed,
+        Collider::cuboid(4., 4.),
     ));
 
     commands
@@ -96,25 +93,37 @@ fn setup(
         });
 }
 
+pub fn toggle_debug_render_context(mut ctx: ResMut<DebugRenderContext>, keys: Res<Input<KeyCode>>) {
+    if keys.just_pressed(KeyCode::Slash) {
+        ctx.enabled = !ctx.enabled;
+    }
+}
+
 pub fn main() {
     App::new()
         .register_type::<CameraOptions>()
         .register_type::<CameraMotor>()
         .register_type::<PlayerMotor>()
-        .register_type::<Collider>()
         .register_type::<RigidBody>()
+        .insert_resource(RapierConfiguration {
+            gravity: Vec2::ZERO,
+            ..Default::default()
+        })
         .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
         .init_resource::<CameraOptions>()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins((
+            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(10.0),
+            RapierDebugRenderPlugin {
+                enabled: false,
+                ..Default::default()
+            },
+        ))
         .add_systems(Startup, setup)
+        .add_systems(Update, (toggle_debug_render_context,))
         .add_systems(
             Update,
-            (
-                handle_player_movement,
-                move_camera,
-                animate_player_sprite,
-                move_physics_bodies,
-            ),
+            (handle_player_movement, move_camera, animate_player_sprite),
         )
         .add_plugins(DefaultInspectorConfigPlugin)
         .add_plugins(WorldInspectorPlugin::new())

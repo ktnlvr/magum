@@ -1,19 +1,21 @@
-use crate::{
-    collision::{Collider, ColliderShape, RigidBody},
-    player::*,
-};
+use crate::player::*;
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 #[derive(Bundle)]
 pub struct HeroBundle {
     pub name: Name,
     pub marker: PlayerMarker,
     pub motor: PlayerMotor,
+    
     pub computed_visibility: ComputedVisibility,
-
     pub visibility: Visibility,
-    pub collider: Collider,
+
     pub rb: RigidBody,
+    pub collider: Collider,
+    pub velocity_controller: Velocity,
+    pub sleeping: Sleeping,
+    pub axis_lock: LockedAxes,
 
     #[bundle()]
     pub transform: TransformBundle,
@@ -28,11 +30,11 @@ impl Default for HeroBundle {
             motor: Default::default(),
             computed_visibility: Default::default(),
             transform: Default::default(),
-            collider: Collider {
-                dynamic: true,
-                shape: ColliderShape::circle(4.),
-            },
-            rb: RigidBody::new_resting(1.),
+            rb: RigidBody::Dynamic,
+            collider: Collider::ball(3.5),
+            velocity_controller: Velocity::default(),
+            sleeping: Sleeping::disabled(),
+            axis_lock: LockedAxes::ROTATION_LOCKED_Z,
         }
     }
 }

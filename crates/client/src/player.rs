@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 
-use crate::{camera::CameraOptions, collision::RigidBody};
+use crate::camera::CameraOptions;
 
 #[derive(Debug, Default, Clone, Copy, Component, PartialEq, Hash, Reflect)]
 pub struct PlayerMarker;
@@ -11,6 +12,7 @@ pub struct PlayerSpriteMarker;
 #[derive(Debug, Clone, Component, Reflect)]
 pub struct PlayerMotor {
     pub wish_direction: Vec2,
+    pub velocity: Vec2,
 
     pub drag: f32,
     pub max_speed: f32,
@@ -20,6 +22,7 @@ pub struct PlayerMotor {
 impl Default for PlayerMotor {
     fn default() -> Self {
         Self {
+            velocity: Vec2::ZERO,
             wish_direction: Vec2::ZERO,
             drag: 9.,
             max_speed: 55.,
@@ -29,38 +32,39 @@ impl Default for PlayerMotor {
 }
 
 pub fn handle_player_movement(
-    mut character: Query<(&mut PlayerMotor, &mut RigidBody), With<PlayerMarker>>,
+    mut character: Query<(&mut PlayerMotor, &mut Velocity), With<PlayerMarker>>,
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
 ) {
-    let (mut motor, mut rb) = character.single_mut();
+    let (mut motor, mut vel) = character.single_mut();
     let deceleration = (1. + motor.drag * time.delta_seconds()).clamp(0., f32::INFINITY);
-    rb.velocity /= deceleration;
+    motor.velocity /= deceleration;
 
     motor.wish_direction.y = keys.pressed(KeyCode::W).then_some(1.).unwrap_or_default()
         + keys.pressed(KeyCode::S).then_some(-1.).unwrap_or_default();
     motor.wish_direction.x = keys.pressed(KeyCode::D).then_some(1.).unwrap_or_default()
         + keys.pressed(KeyCode::A).then_some(-1.).unwrap_or_default();
     motor.wish_direction = motor.wish_direction.normalize_or_zero() * 1.;
+    let wish_vector = motor.wish_direction;
 
-    let current_speed = rb.velocity.dot(motor.wish_direction);
-    let add_speed =
-        (motor.max_speed - current_speed).clamp(0., motor.max_accel);
+    let current_speed = motor.velocity.dot(motor.wish_direction);
+    let add_speed = (motor.max_speed - current_speed).clamp(0., motor.max_accel);
 
-    rb.velocity += add_speed * motor.wish_direction;
+    motor.velocity += add_speed * wish_vector;
+    vel.linvel = motor.velocity;
 }
 
 pub fn animate_player_sprite(
-    player: Query<(&RigidBody, &PlayerMotor), Without<PlayerSpriteMarker>>,
+    player: Query<(&PlayerMotor,), Without<PlayerSpriteMarker>>,
     mut sprite: Query<&mut Transform, With<PlayerSpriteMarker>>,
     time: Res<Time>,
     director: Res<CameraOptions>,
 ) {
-    let (rb, motor) = player.single();
+    let (motor,) = player.single();
     let mut sprite_transform = sprite.single_mut();
 
     let bob_intensity =
-        rb.velocity.length() / motor.max_speed + rb.velocity.y.abs() / motor.max_speed;
+        motor.velocity.length() / motor.max_speed + motor.velocity.y.abs() / motor.max_speed;
 
     sprite_transform.translation.y =
         (time.elapsed_seconds() * 27.5).sin() * bob_intensity * director.character_bob_intensity;
