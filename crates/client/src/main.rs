@@ -1,13 +1,18 @@
+use core::{CorePlugin, HealthPool};
+
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
+use fx::damage_numbers;
 use hero::HeroBundle;
 use player::{
-    CameraBundle, CameraPlugin, PlayerAnimatorPlugin, PlayerLocomotionPlugin,
-    PlayerMeleeAttackEvent, PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker,
+    CameraBundle, CameraPlugin, CombatPlugin, PlayerAnimatorPlugin, PlayerAttackEvent,
+    PlayerLocomotionPlugin, PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker,
     WeaponAnimator,
 };
 
+mod core;
+mod fx;
 mod hero;
 mod player;
 
@@ -84,12 +89,16 @@ fn setup(
         Collider::cuboid(4., 4.),
     ));
 
-    commands.spawn(SpriteSheetBundle {
-        texture_atlas: texture_atlas.clone(),
-        sprite: dummy_sprite.clone(),
-        transform: Transform::from_xyz(-8., 32., 0.),
-        ..default()
-    });
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas.clone(),
+            sprite: dummy_sprite.clone(),
+            transform: Transform::from_xyz(-8., 32., 0.),
+            ..default()
+        },
+        Collider::ball(4.),
+        HealthPool::new(20, 20),
+    ));
 
     commands
         .spawn((HeroBundle {
@@ -136,13 +145,19 @@ pub fn toggle_debug_render_context(mut ctx: ResMut<DebugRenderContext>, keys: Re
 
 pub fn main() {
     App::new()
-        .add_event::<PlayerMeleeAttackEvent>()
+        .add_event::<PlayerAttackEvent>()
         // background
         .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
         // builtins
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         // game related stuff
-        .add_plugins((CameraPlugin, PlayerAnimatorPlugin, PlayerLocomotionPlugin))
+        .add_plugins((
+            CameraPlugin,
+            PlayerAnimatorPlugin,
+            PlayerLocomotionPlugin,
+            CombatPlugin,
+            CorePlugin,
+        ))
         // physics
         .register_type::<RigidBody>()
         .insert_resource(RapierConfiguration {
@@ -157,7 +172,7 @@ pub fn main() {
             },
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (toggle_debug_render_context,))
+        .add_systems(Update, (toggle_debug_render_context, damage_numbers))
         // cool gui stuff
         .add_plugins(DefaultInspectorConfigPlugin)
         .add_plugins(WorldInspectorPlugin::new())

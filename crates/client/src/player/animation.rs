@@ -1,4 +1,4 @@
-use super::{CameraOptions, PlayerMarker, PlayerMeleeAttackEvent, PlayerMotor};
+use super::{CameraOptions, PlayerAttackEvent, PlayerMarker, PlayerMotor};
 use bevy::{
     math::{cubic_splines::CubicCurve, vec2},
     prelude::*,
@@ -90,13 +90,13 @@ pub fn animate_player_weapon(
         let angle = direction.y.atan2(direction.x);
         local_pivot.rotation = Quat::from_euler(EulerRot::XYZ, 0., 0., angle);
 
-        local_pivot.scale.y = (direction.x < 0.).then_some(-1.).unwrap_or(1.);
+        local_pivot.scale.y = if direction.x < 0. { -1. } else { 1. };
     }
 }
 
 pub fn animate_player_attack(
     mut weapon: Query<(&mut Transform, &mut WeaponAnimator)>,
-    mut events: EventReader<PlayerMeleeAttackEvent>,
+    mut events: EventReader<PlayerAttackEvent>,
     time: Res<Time>,
 ) {
     let (mut transform, mut weapon) = weapon.single_mut();
