@@ -3,6 +3,7 @@ use core::{CorePlugin, HealthPool};
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
+use content::{tick_dummy_sprite, Dummy};
 use fx::damage_numbers;
 use hero::HeroBundle;
 use player::{
@@ -11,6 +12,7 @@ use player::{
     WeaponAnimator,
 };
 
+mod content;
 mod core;
 mod fx;
 mod hero;
@@ -97,7 +99,8 @@ fn setup(
             ..default()
         },
         Collider::ball(4.),
-        HealthPool::new(20, 20),
+        HealthPool::new(10),
+        Dummy,
     ));
 
     commands
@@ -172,7 +175,14 @@ pub fn main() {
             },
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (toggle_debug_render_context, damage_numbers))
+        .add_systems(
+            Update,
+            (
+                toggle_debug_render_context,
+                damage_numbers,
+                tick_dummy_sprite,
+            ),
+        )
         // cool gui stuff
         .add_plugins(DefaultInspectorConfigPlugin)
         .add_plugins(WorldInspectorPlugin::new())

@@ -25,16 +25,15 @@ pub fn damage_system(
             continue;
         };
 
-        hp.just_died = false;
-
         if hp.current_hp == 0 {
             continue;
         }
 
-        hp.current_hp = hp.current_hp.saturating_sub(*damage);
-        if hp.current_hp == 0 {
+        if hp.current_hp <= *damage {
             hp.just_died = true;
         }
+
+        hp.current_hp = hp.current_hp.saturating_sub(*damage);
 
         damage_taken.send(DamageTakenEvent {
             damage: *damage,
@@ -43,5 +42,11 @@ pub fn damage_system(
         })
 
         // TODO: emit death event
+    }
+}
+
+pub fn cleanup_just_dead(mut health_pools: Query<&mut HealthPool>) {
+    for mut pool in health_pools.iter_mut() {
+        pool.just_died = false;
     }
 }

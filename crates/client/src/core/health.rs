@@ -9,12 +9,10 @@ pub struct HealthPool {
 }
 
 impl HealthPool {
-    pub fn new(max_hp: u32, current_hp: u32) -> Self {
-        assert!(max_hp >= current_hp);
-
+    pub fn new(max_hp: u32) -> Self {
         HealthPool {
             max_hp,
-            current_hp,
+            current_hp: max_hp,
             just_died: false,
         }
     }
