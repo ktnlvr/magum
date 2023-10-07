@@ -3,7 +3,7 @@ use core::{CorePlugin, HealthPool};
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
-use content::{tick_dummy_sprite, Dummy};
+use content::{tick_dummy_sprite, DummyBehaviour};
 use fx::damage_numbers;
 use hero::HeroBundle;
 use player::{
@@ -17,6 +17,9 @@ mod core;
 mod fx;
 mod hero;
 mod player;
+mod tileset;
+
+pub use tileset::*;
 
 fn setup(
     mut commands: Commands,
@@ -30,52 +33,37 @@ fn setup(
 
     commands.spawn(CameraBundle::default());
 
-    let mut grass_sprite = TextureAtlasSprite::new(4);
-    grass_sprite.color = Color::rgb_u8(0x48, 0x4A, 0x16);
-
-    let mut rock_sprite = TextureAtlasSprite::new(3);
-    rock_sprite.color = Color::rgb_u8(0x64, 0x6C, 0x5E);
-
-    let mut player_sprite = TextureAtlasSprite::new(16);
-    player_sprite.color = Color::rgb_u8(0xC8, 0xAC, 0x5E);
-
-    let mut wall_sprite = TextureAtlasSprite::new(1);
-    wall_sprite.color = Color::rgb_u8(0x64, 0x6C, 0x5E);
-
-    let mut sword_sprite = TextureAtlasSprite::new(13);
-    sword_sprite.color = Color::rgb_u8(0x91, 0x87, 0x83);
-
     let mut dummy_sprite = TextureAtlasSprite::new(17);
     dummy_sprite.color = Color::rgb_u8(0x7D, 0x5C, 0x51);
 
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
-        sprite: grass_sprite.clone(),
+        sprite: GRASS.clone(),
         transform: Transform::from_xyz(-16., 8., 0.),
         ..default()
     });
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
-        sprite: grass_sprite.clone(),
+        sprite: GRASS.clone(),
         transform: Transform::from_xyz(12., 4., 0.),
         ..default()
     });
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
-        sprite: grass_sprite.clone(),
+        sprite: GRASS.clone(),
         transform: Transform::from_xyz(4., -8., 0.),
         ..default()
     });
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
-        sprite: grass_sprite.clone(),
+        sprite: GRASS.clone(),
         transform: Transform::from_xyz(-4., -12., 0.),
         ..default()
     });
 
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
-        sprite: rock_sprite.clone(),
+        sprite: ROCK.clone(),
         transform: Transform::from_xyz(-8., 12., 0.),
         ..default()
     });
@@ -83,7 +71,7 @@ fn setup(
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas.clone(),
-            sprite: wall_sprite.clone(),
+            sprite: WALL.clone(),
             transform: Transform::from_xyz(16., 16., 0.),
             ..default()
         },
@@ -100,7 +88,7 @@ fn setup(
         },
         Collider::ball(4.),
         HealthPool::new(10),
-        Dummy,
+        DummyBehaviour::default(),
     ));
 
     commands
@@ -111,7 +99,7 @@ fn setup(
             hero.spawn((
                 SpriteSheetBundle {
                     texture_atlas: texture_atlas.clone(),
-                    sprite: TextureAtlasSprite::new(16),
+                    sprite: PLAYER.clone(),
                     ..default()
                 },
                 PlayerSpriteMarker,
@@ -129,7 +117,7 @@ fn setup(
                 pivot.spawn((
                     SpriteSheetBundle {
                         texture_atlas,
-                        sprite: sword_sprite,
+                        sprite: SWORD.clone(),
                         transform: Transform::from_xyz(0., 0., 1.),
                         ..default()
                     },

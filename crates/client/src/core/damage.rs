@@ -20,10 +20,18 @@ pub fn damage_system(
     mut damage_deal: EventReader<DealDamageEvent>,
     mut damage_taken: EventWriter<DamageTakenEvent>,
 ) {
+    for (_entity, mut pool) in health_pools.iter_mut() {
+        pool.just_died = false;
+    }
+
     for DealDamageEvent { target, damage } in damage_deal.into_iter() {
         let Ok((entity, mut hp)) = health_pools.get_mut(*target) else {
             continue;
         };
+
+        if hp.just_died {
+            hp.just_died = false;
+        }
 
         if hp.current_hp == 0 {
             continue;
@@ -42,11 +50,5 @@ pub fn damage_system(
         })
 
         // TODO: emit death event
-    }
-}
-
-pub fn cleanup_just_dead(mut health_pools: Query<&mut HealthPool>) {
-    for mut pool in health_pools.iter_mut() {
-        pool.just_died = false;
     }
 }
