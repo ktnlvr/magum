@@ -29,10 +29,6 @@ pub fn damage_system(
             continue;
         };
 
-        if hp.just_died {
-            hp.just_died = false;
-        }
-
         if hp.current_hp == 0 {
             continue;
         }

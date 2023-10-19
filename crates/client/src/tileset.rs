@@ -20,6 +20,16 @@ lazy_static! {
         index: 3,
         ..default()
     };
+    pub static ref DUMMY: TextureAtlasSprite = TextureAtlasSprite {
+        color: Color::rgb_u8(0x7D, 0x5C, 0x51),
+        index: 17,
+        ..default()
+    };
+    pub static ref DUMMY_BROKEN: TextureAtlasSprite = TextureAtlasSprite {
+        color: Color::rgb_u8(0x7D, 0x5C, 0x51) * 0.7,
+        index: 18,
+        ..default()
+    };
     pub static ref GRASS: TextureAtlasSprite = TextureAtlasSprite {
         color: Color::rgb_u8(0x48, 0x4A, 0x16),
         index: 4,

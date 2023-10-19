@@ -1,15 +1,14 @@
-use core::{CorePlugin, HealthPool};
+use core::CorePlugin;
 
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
-use content::{tick_dummy_sprite, DummyBehaviour};
+use content::{tick_dummy_sprite, DummyBodyBundle, DummySpriteBundle};
 use fx::damage_numbers;
 use hero::HeroBundle;
 use player::{
-    CameraBundle, CameraPlugin, CombatPlugin, PlayerAnimatorPlugin, PlayerAttackEvent,
-    PlayerLocomotionPlugin, PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker,
-    WeaponAnimator,
+    CameraBundle, CameraPlugin, CombatPlugin, PlayerAnimatorPlugin, PlayerLocomotionPlugin,
+    PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker, WeaponAnimator,
 };
 
 mod content;
@@ -32,9 +31,6 @@ fn setup(
     let texture_atlas = atlases.add(texture_atlas);
 
     commands.spawn(CameraBundle::default());
-
-    let mut dummy_sprite = TextureAtlasSprite::new(17);
-    dummy_sprite.color = Color::rgb_u8(0x7D, 0x5C, 0x51);
 
     commands.spawn(SpriteSheetBundle {
         texture_atlas: texture_atlas.clone(),
@@ -79,17 +75,11 @@ fn setup(
         Collider::cuboid(4., 4.),
     ));
 
-    commands.spawn((
-        SpriteSheetBundle {
-            texture_atlas: texture_atlas.clone(),
-            sprite: dummy_sprite.clone(),
-            transform: Transform::from_xyz(-8., 32., 0.),
-            ..default()
-        },
-        Collider::ball(4.),
-        HealthPool::new(10),
-        DummyBehaviour::default(),
-    ));
+    commands
+        .spawn(DummyBodyBundle::default())
+        .with_children(|parent| {
+            parent.spawn(DummySpriteBundle::new(texture_atlas.clone()));
+        });
 
     commands
         .spawn((HeroBundle {
@@ -136,7 +126,6 @@ pub fn toggle_debug_render_context(mut ctx: ResMut<DebugRenderContext>, keys: Re
 
 pub fn main() {
     App::new()
-        .add_event::<PlayerAttackEvent>()
         // background
         .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
         // builtins
