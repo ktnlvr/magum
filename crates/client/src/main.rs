@@ -2,7 +2,7 @@
 
 use core::CorePlugin;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PresentMode};
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
 use content::{
@@ -129,12 +129,29 @@ pub fn toggle_debug_render_context(mut ctx: ResMut<DebugRenderContext>, keys: Re
     }
 }
 
-pub fn main() {
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn start() {
+    #[cfg(target_arch = "wasm32")]
+    console_error_panic_hook::set_once();
+
     App::new()
         // background
         .insert_resource(ClearColor(Color::rgb_u8(0x0A, 0x0D, 0x11)))
         // builtins
-        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(
+            DefaultPlugins
+                .set(ImagePlugin::default_nearest())
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        present_mode: PresentMode::AutoNoVsync,
+                        fit_canvas_to_parent: true,
+                        ..default()
+                    }),
+                    ..default()
+                }),
+        )
         // game related stuff
         .add_plugins((
             CameraPlugin,
@@ -171,4 +188,8 @@ pub fn main() {
         .add_plugins(DefaultInspectorConfigPlugin)
         .add_plugins(WorldInspectorPlugin::new())
         .run();
+}
+
+pub fn main() {
+    start();
 }

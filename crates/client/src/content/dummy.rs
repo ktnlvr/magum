@@ -95,7 +95,6 @@ impl DummySpriteBundle {
 #[derive(Bundle)]
 pub struct DummyCorpseBundle {
     pub collider: Collider,
-    pub animator: Animator<DummyAnimationState>,
 
     #[bundle()]
     pub spritesheet: SpriteSheetBundle,
@@ -130,16 +129,11 @@ pub fn dummy_damage_shake(
 pub fn tick_dummy_sprite(
     mut dummies: Query<(Entity, &HealthPool, &Transform, &Children), With<DummyBehaviour>>,
     dummy_sprites: Query<&Handle<TextureAtlas>>,
-    dummy_animators: Query<&Animator<DummyAnimationState>>,
     mut commands: Commands,
 ) {
     for (entt, hp, transform, children) in dummies.iter_mut() {
         if hp.just_died {
             let atlas = dummy_sprites
-                .get(*children.get(0).unwrap())
-                .unwrap()
-                .clone();
-            let animator = dummy_animators
                 .get(*children.get(0).unwrap())
                 .unwrap()
                 .clone();
@@ -153,7 +147,6 @@ pub fn tick_dummy_sprite(
                     ..Default::default()
                 },
                 collider: Collider::ball(4.),
-                animator,
             });
         }
     }
