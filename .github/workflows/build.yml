@@ -37,6 +37,7 @@ jobs:
           trunk build --config GithubPagesTrunk.toml
           mkdir dist/assets
           cp assets/tileset.png dist/assets/tileset.png
+          mv -rp dist ../../dist
         working-directory: ./crates/client/
       - uses: actions/upload-pages-artifact@v1
         with:
