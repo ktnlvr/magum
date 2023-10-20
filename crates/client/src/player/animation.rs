@@ -85,8 +85,7 @@ pub fn animate_player_weapon(
         .cursor_position()
         .and_then(|cursor| camera.viewport_to_world_2d(camera_global, cursor))
     {
-        let direction =
-            cursor_pos - Vec2::new(global_pivot.translation().x, global_pivot.translation().y);
+        let direction = cursor_pos - global_pivot.translation().truncate();
         let angle = direction.y.atan2(direction.x);
         local_pivot.rotation = Quat::from_euler(EulerRot::XYZ, 0., 0., angle);
 

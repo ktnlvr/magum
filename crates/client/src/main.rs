@@ -5,7 +5,9 @@ use core::CorePlugin;
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
-use content::{tick_dummy_sprite, DummyBodyBundle, DummySpriteBundle, dummy_damage_shake};
+use content::{
+    dummy_damage_shake, tick_dummy_sprite, DummyAnimationState, DummyBodyBundle, DummySpriteBundle,
+};
 use fx::damage_numbers;
 use hero::HeroBundle;
 use player::{
@@ -140,7 +142,6 @@ pub fn main() {
             PlayerAnimatorPlugin,
             PlayerLocomotionPlugin,
             CombatPlugin,
-            AnimatorPlugin,
             CorePlugin,
         ))
         // physics
@@ -164,6 +165,7 @@ pub fn main() {
                 damage_numbers,
                 dummy_damage_shake,
                 tick_dummy_sprite,
+                animator_system::<DummyAnimationState>,
             ),
         )
         // cool gui stuff

@@ -4,12 +4,14 @@ use super::HealthPool;
 
 #[derive(Debug, Event, Clone, Copy)]
 pub struct DealDamageEvent {
+    pub from_position: Vec2,
     pub damage: u32,
     pub target: Entity,
 }
 
 #[derive(Debug, Event)]
 pub struct DamageTakenEvent {
+    pub from_position: Vec2,
     pub damage: u32,
     pub taken_by: Entity,
     pub killing_blow: bool,
@@ -24,7 +26,12 @@ pub fn damage_system(
         pool.just_died = false;
     }
 
-    for DealDamageEvent { target, damage } in damage_deal.into_iter() {
+    for DealDamageEvent {
+        target,
+        damage,
+        from_position,
+    } in damage_deal.into_iter()
+    {
         let Ok((entity, mut hp)) = health_pools.get_mut(*target) else {
             continue;
         };
@@ -41,6 +48,7 @@ pub fn damage_system(
 
         damage_taken.send(DamageTakenEvent {
             damage: *damage,
+            from_position: *from_position,
             taken_by: entity,
             killing_blow: hp.just_died,
         })

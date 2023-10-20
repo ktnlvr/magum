@@ -1,11 +1,11 @@
-use std::time::Duration;
+use std::f32::consts::PI;
 
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
 use crate::{
     core::{DamageTakenEvent, HealthPool},
-    Animator, Clip, DUMMY, DUMMY_BROKEN,
+    Animator, AnimatorStateMachine, DUMMY, DUMMY_BROKEN,
 };
 
 #[derive(Component, Default)]
@@ -35,16 +35,40 @@ impl Default for DummyBodyBundle {
     }
 }
 
-#[derive(Component, Default)]
-pub struct DummySpriteMarker;
+#[derive(Component, Default, Clone, Copy)]
+pub enum DummyAnimationState {
+    #[default]
+    Idle,
+    Damaged {
+        relative_blow_direction: Vec2,
+    },
+}
+
+impl AnimatorStateMachine for DummyAnimationState {
+    fn calculate_transform(&self, t: f32) -> Transform {
+        match self {
+            DummyAnimationState::Idle => Transform::IDENTITY,
+            DummyAnimationState::Damaged {
+                relative_blow_direction,
+            } => {
+                let mut transform = Transform::IDENTITY;
+                transform.rotate_z(
+                    relative_blow_direction.x.signum() * 0.75 * (1. - t) * (2. * PI * t).cos()
+                        / (t + 1.).powi(2),
+                );
+                transform.translation -= (*relative_blow_direction * (1. - t).powi(2)).extend(0.);
+                transform
+            }
+        }
+    }
+}
 
 #[derive(Bundle)]
 pub struct DummySpriteBundle {
-    pub animator: Animator,
+    pub animator: Animator<DummyAnimationState>,
 
     #[bundle()]
     pub spritesheet: SpriteSheetBundle,
-    _marker: DummySpriteMarker,
 }
 
 impl DummySpriteBundle {
@@ -57,7 +81,6 @@ impl DummySpriteBundle {
                 transform: Transform::IDENTITY,
                 ..default()
             },
-            _marker: DummySpriteMarker::default(),
         }
     }
 }
@@ -65,27 +88,33 @@ impl DummySpriteBundle {
 #[derive(Bundle)]
 pub struct DummyCorpseBundle {
     pub collider: Collider,
+    pub animator: Animator<DummyAnimationState>,
 
     #[bundle()]
     pub spritesheet: SpriteSheetBundle,
 }
 
-struct DummyShakeAnimationClip;
-
-impl Clip for DummyShakeAnimationClip {
-    fn animate(&self, time_normalized: f32) -> Transform {
-        Transform::from_scale(Vec3::ONE * time_normalized)
-    }
-}
-
 pub fn dummy_damage_shake(
-    mut dummy_animators: Query<(&Parent, &mut Animator), With<DummySpriteMarker>>,
+    mut dummy_animators: Query<(
+        &Parent,
+        &GlobalTransform,
+        &mut Animator<DummyAnimationState>,
+    )>,
     mut events: EventReader<DamageTakenEvent>,
 ) {
-    for (dummy_sprite_parent, mut dummy_animator) in dummy_animators.iter_mut() {
-        for DamageTakenEvent { taken_by, .. } in events.into_iter() {
-            if dummy_sprite_parent.get() == *taken_by {
-                dummy_animator.play(DummyShakeAnimationClip, Duration::from_secs(1));
+    for (parent, global_transform, mut animator) in dummy_animators.iter_mut() {
+        for DamageTakenEvent {
+            taken_by,
+            from_position,
+            ..
+        } in events.into_iter()
+        {
+            if parent.get() == *taken_by {
+                animator.transition_into(DummyAnimationState::Damaged {
+                    relative_blow_direction: (global_transform.translation().truncate()
+                        + *from_position)
+                        .normalize_or_zero(),
+                });
             }
         }
     }
@@ -94,11 +123,16 @@ pub fn dummy_damage_shake(
 pub fn tick_dummy_sprite(
     mut dummies: Query<(Entity, &HealthPool, &Transform, &Children), With<DummyBehaviour>>,
     dummy_sprites: Query<&Handle<TextureAtlas>>,
+    dummy_animators: Query<&Animator<DummyAnimationState>>,
     mut commands: Commands,
 ) {
     for (entt, hp, transform, children) in dummies.iter_mut() {
         if hp.just_died {
             let atlas = dummy_sprites
+                .get(*children.get(0).unwrap())
+                .unwrap()
+                .clone();
+            let animator = dummy_animators
                 .get(*children.get(0).unwrap())
                 .unwrap()
                 .clone();
@@ -112,6 +146,7 @@ pub fn tick_dummy_sprite(
                     ..Default::default()
                 },
                 collider: Collider::ball(4.),
+                animator: animator.clone(),
             });
         }
     }

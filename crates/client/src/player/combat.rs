@@ -1,10 +1,7 @@
 use bevy::{math::vec2, prelude::*, reflect::Reflect, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 
-use crate::{
-    core::{DealDamageEvent},
-    player::PlayerMarker,
-};
+use crate::{core::DealDamageEvent, player::PlayerMarker};
 
 pub struct CombatPlugin;
 
@@ -28,6 +25,7 @@ pub struct PlayerAttackEvent {
 
 #[derive(Debug, Event, Reflect)]
 pub struct EntityHitEvent {
+    from_pos: Vec2,
     entity: Entity,
 }
 
@@ -85,7 +83,10 @@ pub fn attack_provider(
                 .exclude_collider(*player_entity)
                 .exclude_sensors(),
         ) {
-            hit_events.send(EntityHitEvent { entity })
+            hit_events.send(EntityHitEvent {
+                entity,
+                from_pos: *player_pos,
+            })
         }
     }
 }
@@ -94,10 +95,15 @@ pub fn convert_hits_to_damage(
     mut hit_events: EventReader<EntityHitEvent>,
     mut damage_events: EventWriter<DealDamageEvent>,
 ) {
-    for EntityHitEvent { entity } in hit_events.into_iter() {
+    for EntityHitEvent {
+        entity,
+        from_pos: from_position,
+    } in hit_events.into_iter()
+    {
         damage_events.send(DealDamageEvent {
             damage: 1,
             target: *entity,
+            from_position: *from_position,
         })
     }
 }

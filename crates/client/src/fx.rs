@@ -7,9 +7,11 @@ pub fn damage_numbers(mut events: EventReader<DamageTakenEvent>, hp: Query<&Heal
         taken_by, damage, ..
     } in events.into_iter()
     {
-        println!(
-            "Damage dealt to {taken_by:?}: {damage} damage, now at {} HP",
-            hp.get(*taken_by).unwrap().current_hp
-        );
+        if let Ok(entt) = hp.get(*taken_by) {
+            println!(
+                "Damage dealt to {taken_by:?}: {damage} damage, now at {} HP",
+                entt.current_hp
+            );
+        }
     }
 }
