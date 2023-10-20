@@ -1,9 +1,11 @@
+#![feature(trivial_bounds)]
+
 use core::CorePlugin;
 
 use bevy::prelude::*;
 use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 use bevy_rapier2d::prelude::*;
-use content::{tick_dummy_sprite, DummyBodyBundle, DummySpriteBundle};
+use content::{tick_dummy_sprite, DummyBodyBundle, DummySpriteBundle, dummy_damage_shake};
 use fx::damage_numbers;
 use hero::HeroBundle;
 use player::{
@@ -11,6 +13,7 @@ use player::{
     PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker, WeaponAnimator,
 };
 
+mod animation;
 mod content;
 mod core;
 mod fx;
@@ -18,6 +21,7 @@ mod hero;
 mod player;
 mod tileset;
 
+pub use animation::*;
 pub use tileset::*;
 
 fn setup(
@@ -136,6 +140,7 @@ pub fn main() {
             PlayerAnimatorPlugin,
             PlayerLocomotionPlugin,
             CombatPlugin,
+            AnimatorPlugin,
             CorePlugin,
         ))
         // physics
@@ -157,6 +162,7 @@ pub fn main() {
             (
                 toggle_debug_render_context,
                 damage_numbers,
+                dummy_damage_shake,
                 tick_dummy_sprite,
             ),
         )

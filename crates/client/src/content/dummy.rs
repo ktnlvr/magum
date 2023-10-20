@@ -1,7 +1,15 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-use crate::{core::HealthPool, DUMMY, DUMMY_BROKEN};
+use crate::{
+    core::{DamageTakenEvent, HealthPool},
+    Animator, Clip, DUMMY, DUMMY_BROKEN,
+};
+
+#[derive(Component, Default)]
+pub struct DummyBehaviour;
 
 #[derive(Bundle)]
 pub struct DummyBodyBundle {
@@ -18,30 +26,38 @@ pub struct DummyBodyBundle {
 impl Default for DummyBodyBundle {
     fn default() -> Self {
         Self {
-            collider: Collider::ball(4.),
             hp: HealthPool::new(10),
             behaviour: DummyBehaviour::default(),
             visibility: VisibilityBundle::default(),
             transform: TransformBundle::default(),
+            collider: Collider::ball(4.),
         }
     }
 }
 
+#[derive(Component, Default)]
+pub struct DummySpriteMarker;
+
 #[derive(Bundle)]
 pub struct DummySpriteBundle {
+    pub animator: Animator,
+
     #[bundle()]
     pub spritesheet: SpriteSheetBundle,
+    _marker: DummySpriteMarker,
 }
 
 impl DummySpriteBundle {
     pub fn new(texture_atlas: Handle<TextureAtlas>) -> Self {
         Self {
+            animator: Animator::default(),
             spritesheet: SpriteSheetBundle {
                 texture_atlas: texture_atlas.clone(),
                 sprite: DUMMY.clone(),
                 transform: Transform::IDENTITY,
                 ..default()
             },
+            _marker: DummySpriteMarker::default(),
         }
     }
 }
@@ -54,8 +70,26 @@ pub struct DummyCorpseBundle {
     pub spritesheet: SpriteSheetBundle,
 }
 
-#[derive(Component, Default)]
-pub struct DummyBehaviour;
+struct DummyShakeAnimationClip;
+
+impl Clip for DummyShakeAnimationClip {
+    fn animate(&self, time_normalized: f32) -> Transform {
+        Transform::from_scale(Vec3::ONE * time_normalized)
+    }
+}
+
+pub fn dummy_damage_shake(
+    mut dummy_animators: Query<(&Parent, &mut Animator), With<DummySpriteMarker>>,
+    mut events: EventReader<DamageTakenEvent>,
+) {
+    for (dummy_sprite_parent, mut dummy_animator) in dummy_animators.iter_mut() {
+        for DamageTakenEvent { taken_by, .. } in events.into_iter() {
+            if dummy_sprite_parent.get() == *taken_by {
+                dummy_animator.play(DummyShakeAnimationClip, Duration::from_secs(1));
+            }
+        }
+    }
+}
 
 pub fn tick_dummy_sprite(
     mut dummies: Query<(Entity, &HealthPool, &Transform, &Children), With<DummyBehaviour>>,
