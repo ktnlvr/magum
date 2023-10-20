@@ -12,7 +12,7 @@ use fx::damage_numbers;
 use hero::HeroBundle;
 use player::{
     CameraBundle, CameraPlugin, CombatPlugin, PlayerAnimatorPlugin, PlayerLocomotionPlugin,
-    PlayerSpriteMarker, PlayerWeaponMarker, PlayerWeaponPivotMarker, WeaponAnimator,
+    PlayerSpriteMarker, PlayerWeaponMarker, WeaponAnimationState,
 };
 
 mod animation;
@@ -107,7 +107,7 @@ fn setup(
                     ..default()
                 },
                 VisibilityBundle::default(),
-                PlayerWeaponPivotMarker,
+                Animator::<WeaponAnimationState>::default(),
             ))
             .with_children(|pivot| {
                 pivot.spawn((
@@ -118,7 +118,6 @@ fn setup(
                         ..default()
                     },
                     PlayerWeaponMarker,
-                    WeaponAnimator::default(),
                 ));
             });
         });

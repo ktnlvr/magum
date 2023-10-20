@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, time::Duration};
 
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
@@ -59,6 +59,13 @@ impl AnimatorStateMachine for DummyAnimationState {
                 transform.translation -= (*relative_blow_direction * (1. - t).powi(2)).extend(0.);
                 transform
             }
+        }
+    }
+
+    fn duration(&self) -> Duration {
+        match self {
+            Self::Damaged { .. } => Duration::from_secs_f32(0.6),
+            _ => Duration::ZERO,
         }
     }
 }
@@ -146,7 +153,7 @@ pub fn tick_dummy_sprite(
                     ..Default::default()
                 },
                 collider: Collider::ball(4.),
-                animator: animator.clone(),
+                animator,
             });
         }
     }

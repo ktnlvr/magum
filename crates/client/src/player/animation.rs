@@ -1,3 +1,7 @@
+use std::time::Duration;
+
+use crate::{animator_system, Animator, AnimatorStateMachine};
+
 use super::{CameraOptions, PlayerAttackEvent, PlayerMarker, PlayerMotor};
 use bevy::{
     math::{cubic_splines::CubicCurve, vec2},
@@ -6,8 +10,21 @@ use bevy::{
 };
 use lazy_static::lazy_static;
 
-#[derive(Debug, Default, Clone, Copy, Component, PartialEq, Hash, Reflect)]
-pub struct PlayerWeaponPivotMarker;
+pub struct PlayerAnimatorPlugin;
+
+impl Plugin for PlayerAnimatorPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            Update,
+            (
+                animate_player_sprite,
+                animate_player_attack,
+                animate_player_weapon,
+                animator_system::<WeaponAnimationState>,
+            ),
+        );
+    }
+}
 
 #[derive(Debug, Default, Clone, Copy, Component, PartialEq, Hash, Reflect)]
 pub struct PlayerWeaponMarker;
@@ -24,35 +41,59 @@ lazy_static! {
         Bezier::new(ATTACK_CURVE_CONTROL_POINTS).to_curve();
 }
 
-#[derive(Debug, Component, Reflect)]
-pub struct WeaponAnimator {
-    pub attack_range: f32,
-    pub pivot: Vec2,
-    pub timer: Timer,
+#[derive(Debug, Clone)]
+pub struct WeaponAnimationState {
+    pub look_direction: Vec2,
+    pub weapon_pivot: Vec2,
+    state: WeaponAnimationStateState,
 }
 
-impl Default for WeaponAnimator {
+impl Default for WeaponAnimationState {
     fn default() -> Self {
         Self {
-            attack_range: 5.,
-            pivot: Vec2::new(4., -2.),
-            timer: Timer::default(),
+            look_direction: Default::default(),
+            weapon_pivot: Vec2::new(0., -1.5),
+            state: Default::default(),
         }
     }
 }
 
-pub struct PlayerAnimatorPlugin;
+#[derive(Debug, Default, Clone)]
+pub enum WeaponAnimationStateState {
+    #[default]
+    Idle,
+    Attacking {
+        range: f32,
+    },
+}
 
-impl Plugin for PlayerAnimatorPlugin {
-    fn build(&self, app: &mut App) {
-        app.register_type::<WeaponAnimator>().add_systems(
-            Update,
-            (
-                animate_player_sprite,
-                animate_player_weapon,
-                animate_player_attack,
-            ),
-        );
+impl AnimatorStateMachine for WeaponAnimationState {
+    fn calculate_transform(&self, t: f32) -> Transform {
+        use WeaponAnimationStateState::*;
+
+        let mut offset = Transform::IDENTITY;
+        offset.rotate_z(self.look_direction.y.atan2(self.look_direction.x));
+        offset.scale.y = self.look_direction.x.signum();
+        offset.translation = (self.weapon_pivot
+            + Vec2::new(4., 0.).rotate(self.look_direction.normalize()))
+        .extend(0.);
+
+        offset
+            * match self.state {
+                Idle => Transform::IDENTITY,
+                Attacking { range } => {
+                    Transform::from_xyz(ATTACK_CURVE.position(t).y * range, 0., 0.)
+                }
+            }
+    }
+
+    fn duration(&self) -> std::time::Duration {
+        match self.state {
+            WeaponAnimationStateState::Idle => Duration::ZERO,
+            WeaponAnimationStateState::Attacking { .. } => {
+                Duration::from_secs_f32(ATTACK_ANIMATION_DURATION)
+            }
+        }
     }
 }
 
@@ -73,40 +114,35 @@ pub fn animate_player_sprite(
 }
 
 pub fn animate_player_weapon(
-    mut weapon_pivot: Query<(&GlobalTransform, &mut Transform), With<PlayerWeaponPivotMarker>>,
+    mut weapon_animator: Query<&mut Animator<WeaponAnimationState>>,
+    weapon_pivot: Query<&GlobalTransform, With<PlayerMarker>>,
     camera: Query<(&GlobalTransform, &Camera), Without<PlayerMarker>>,
     window: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let (global_pivot, mut local_pivot) = weapon_pivot.single_mut();
+    let mut animator = weapon_animator.single_mut();
     let (camera_global, camera) = camera.single();
+    let weapon_pivot = weapon_pivot.single();
     let window = window.single();
 
     if let Some(cursor_pos) = window
         .cursor_position()
         .and_then(|cursor| camera.viewport_to_world_2d(camera_global, cursor))
     {
-        let direction = cursor_pos - global_pivot.translation().truncate();
-        let angle = direction.y.atan2(direction.x);
-        local_pivot.rotation = Quat::from_euler(EulerRot::XYZ, 0., 0., angle);
-
-        local_pivot.scale.y = if direction.x < 0. { -1. } else { 1. };
+        let direction = cursor_pos - weapon_pivot.translation().truncate();
+        animator.mutate_state(|state| state.look_direction = direction.clamp_length(0., 1.));
     }
 }
 
 pub fn animate_player_attack(
-    mut weapon: Query<(&mut Transform, &mut WeaponAnimator)>,
+    mut weapon: Query<&mut Animator<WeaponAnimationState>>,
     mut events: EventReader<PlayerAttackEvent>,
-    time: Res<Time>,
 ) {
-    let (mut transform, mut weapon) = weapon.single_mut();
-
-    weapon.timer.tick(time.delta());
+    let mut weapon = weapon.single_mut();
 
     if events.iter().next().is_some() {
-        weapon.timer = Timer::from_seconds(ATTACK_ANIMATION_DURATION, TimerMode::Once);
+        weapon.transition_into(WeaponAnimationState {
+            state: WeaponAnimationStateState::Attacking { range: 5. },
+            ..WeaponAnimationState::default()
+        });
     }
-
-    transform.translation.x =
-        ATTACK_CURVE.position(weapon.timer.percent()).y * weapon.attack_range + weapon.pivot.x;
-    transform.translation.y = weapon.pivot.y;
 }

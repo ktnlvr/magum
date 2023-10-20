@@ -14,7 +14,7 @@ where
     fn calculate_transform(&self, t: f32) -> Transform;
 
     fn duration(&self) -> Duration {
-        Duration::from_secs(1)
+        Duration::ZERO
     }
 
     fn next(&self) -> Option<Self> {
@@ -31,9 +31,24 @@ pub struct Animator<T: AnimatorStateMachine> {
 impl<T: AnimatorStateMachine> Animator<T> {
     pub fn transition_into(&mut self, state: T) -> T {
         use std::mem::*;
+        self.timer = Timer::new(state.duration(), TimerMode::Once);
         let old_state = replace(&mut self.state, state);
-        self.timer = Timer::new(self.state.duration(), TimerMode::Once);
         old_state
+    }
+
+    pub fn mutate_state(&mut self, mut mutator: impl FnMut(&mut T)) {
+        mutator(&mut self.state)
+    }
+}
+
+impl<T: AnimatorStateMachine> From<T> for Animator<T> {
+    fn from(state: T) -> Self {
+        let duration = state.duration();
+
+        Self {
+            state,
+            timer: Timer::new(duration, TimerMode::Once),
+        }
     }
 }
 
@@ -42,7 +57,9 @@ pub fn animator_system<T: AnimatorStateMachine>(
     time: Res<Time>,
 ) {
     for (mut transform, mut animator) in animators.iter_mut() {
-        animator.timer.tick(time.delta());
+        if animator.state.duration() != Duration::ZERO {
+            animator.timer.tick(time.delta());
+        }
 
         if animator.timer.just_finished() {
             let next_state = animator.state.next().unwrap_or_default();
